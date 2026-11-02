@@ -71,18 +71,20 @@ local function implementEvent(className, name)
 	end)
 end
 
-for _, e in {
-	{ "Players", "PlayerAdded" },
-	{ "Players", "PlayerRemoving" },
-	{ "Player", "CharacterAdded" },
-	{ "ProximityPromptService", "PromptTriggered" },
-	{ "RemoteEvent", "OnServerEvent" },
-	{ "RemoteEvent", "OnClientEvent" },
-	{ "BasePart", "Touched" },
-	{ "RunService", "Heartbeat" },
-	{ "RunService", "RenderStepped" },
-	{ "ProximityPrompt", "Triggered" },
-} do
+for _, e in
+	{
+		{ "Players", "PlayerAdded" },
+		{ "Players", "PlayerRemoving" },
+		{ "Player", "CharacterAdded" },
+		{ "ProximityPromptService", "PromptTriggered" },
+		{ "RemoteEvent", "OnServerEvent" },
+		{ "RemoteEvent", "OnClientEvent" },
+		{ "BasePart", "Touched" },
+		{ "RunService", "Heartbeat" },
+		{ "RunService", "RenderStepped" },
+		{ "ProximityPrompt", "Triggered" },
+	}
+do
 	implementEvent(e[1], e[2])
 end
 
@@ -293,16 +295,18 @@ end)
 -------------------------------------------------------------------------------
 Sim.clientMode = false
 Sim.localPlayer = nil
-for _, e in {
-	{ "UserInputService", "InputBegan" },
-	{ "UserInputService", "InputEnded" },
-	{ "TextButton", "Activated" },
-	{ "Sound", "Ended" },
-	{ "Instance", "DescendantAdded" },
-	{ "Instance", "DescendantRemoving" },
-	{ "Instance", "ChildAdded" },
-	{ "Instance", "ChildRemoved" },
-} do
+for _, e in
+	{
+		{ "UserInputService", "InputBegan" },
+		{ "UserInputService", "InputEnded" },
+		{ "TextButton", "Activated" },
+		{ "Sound", "Ended" },
+		{ "Instance", "DescendantAdded" },
+		{ "Instance", "DescendantRemoving" },
+		{ "Instance", "ChildAdded" },
+		{ "Instance", "ChildRemoved" },
+	}
+do
 	implementEvent(e[1], e[2])
 end
 roblox.implementMethod("RemoteEvent", "FireServer", function(self, payload)
@@ -403,7 +407,10 @@ function Sim.require(module)
 end
 
 function Sim.runScript(scriptInst)
-	local fn = luau.load(scriptInst.Source, { debugName = scriptInst:GetFullName(), environment = makeEnv(scriptInst) })
+	local fn = luau.load(
+		scriptInst.Source,
+		{ debugName = scriptInst:GetFullName(), environment = makeEnv(scriptInst) }
+	)
 	return task.spawn(fn)
 end
 

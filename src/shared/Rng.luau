@@ -46,7 +46,11 @@ end
 -- Хэш точки сетки → [0,1). Без состояния: удобно для «есть ли дерево в клетке».
 -- Нелинейное перемешивание битов (иначе на карте видны полосы).
 function Rng.hash2(x: number, z: number, seed: number): number
-	local h = bit32.bxor(mul32(x % TWO32, 0x27d4eb2d), mul32(z % TWO32, 0x165667b1), mul32(seed % TWO32, 0x9e3779b1))
+	local h = bit32.bxor(
+		mul32(x % TWO32, 0x27d4eb2d),
+		mul32(z % TWO32, 0x165667b1),
+		mul32(seed % TWO32, 0x9e3779b1)
+	)
 	h = bit32.bxor(h, bit32.rshift(h, 15))
 	h = mul32(h, 0x85ebca6b)
 	h = bit32.bxor(h, bit32.rshift(h, 13))
