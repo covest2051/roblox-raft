@@ -53,7 +53,7 @@ function Signal:Wait()
 end
 Sim.Signal = Signal
 
-local signals = setmetatable({}, { __mode = "k" })
+local signals = {} -- сильные ключи: иначе GC теряет подписки, пока игровой код не держит ссылку
 local function signalOf(inst, name)
 	signals[inst] = signals[inst] or {}
 	local s = signals[inst][name]

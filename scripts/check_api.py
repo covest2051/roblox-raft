@@ -87,6 +87,33 @@ for f in files:
         if m.group(1) not in classes:
             errors.append(f"{f}:{lineof(m.start())}: unknown service {m.group(1)}")
 
+# Вызовы методов obj:Name(...) — метод должен существовать хоть у одного класса API,
+# у типа данных (CFrame, Vector3, Random, ...) или быть объявлен в нашем коде.
+api_methods = set()
+for c in dump["Classes"]:
+    for m in c["Members"]:
+        if m["MemberType"] in ("Function", "Callback"):
+            api_methods.add(m["Name"])
+DATATYPE_METHODS = {
+    "PointToObjectSpace", "PointToWorldSpace", "ToObjectSpace", "ToWorldSpace", "Inverse", "Lerp",
+    "VectorToObjectSpace", "VectorToWorldSpace", "ExpandToGrid", "NextInteger", "NextNumber",
+    "Connect", "Once", "Wait", "Disconnect", "Dot", "Cross", "FuzzyEq", "Abs", "Floor", "Ceil",
+    "Max", "Min", "GetComponents", "ToEulerAnglesXYZ", "ToOrientation", "Orthonormalize",
+}
+own = set()
+for f in files:
+    for m in re.finditer(r'function\s+[\w.]+[:.](\w+)\s*\(', f.read_text()):
+        own.add(m.group(1))
+for f in files:
+    src = f.read_text()
+    code = re.sub(r'--\[\[.*?\]\]', lambda m: "\n" * m.group(0).count("\n"), src, flags=re.S)
+    code = re.sub(r'--[^\n]*', '', code)
+    code = re.sub(r'"(?:\\.|[^"\\])*"', '""', code)
+    for m in re.finditer(r'[\w\)\]]:(\w+)\(', code):
+        name = m.group(1)
+        if name not in api_methods and name not in DATATYPE_METHODS and name not in own:
+            errors.append(f"{f}:{code.count(chr(10), 0, m.start()) + 1}: unknown method :{name}()")
+
 errors = list(dict.fromkeys(errors))
 for e in errors:
     print("✗", e)

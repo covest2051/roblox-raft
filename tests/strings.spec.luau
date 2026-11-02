@@ -48,7 +48,16 @@ return function(t)
 					local src = fs.readFile(path)
 					for key in string.gmatch(src, '"(%l+%.%a[%w]*)"') do
 						local prefix = string.match(key, "^(%l+)%.")
-						local known = { ui = 1, shop = 1, warn = 1, sign = 1, prompt = 1, wreck = 1, results = 1, debug = 1 }
+						local known = {
+							ui = 1,
+							shop = 1,
+							warn = 1,
+							sign = 1,
+							prompt = 1,
+							wreck = 1,
+							results = 1,
+							debug = 1,
+						}
 						if known[prefix] and not Strings.ru[key] then
 							missing[key .. " in " .. f] = true
 						end

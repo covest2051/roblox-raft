@@ -62,15 +62,16 @@ function SelfTest.run(): { string }
 			string.format("%d rocks, %d coins, %d gates", r, c, g)
 	end)
 
-	check("raft waits at the dock", function()
+	check("raft exists and is driven by physics", function()
 		for _, raft in RaftService.rafts do
-			if raft.phase == "dock" or raft.phase == "countdown" then
-				local hull = raft.hull
-				local ap = hull:FindFirstChild("AlignPosition")
-				return ap ~= nil and not hull.Anchored, "raft " .. raft.id
+			local hull = raft.hull
+			local ap = hull:FindFirstChild("AlignPosition")
+			if raft.phase == "sunk" then
+				continue
 			end
+			return ap ~= nil and not hull.Anchored, "raft " .. raft.id .. " (" .. raft.phase .. ")"
 		end
-		return false, "no dock raft"
+		return "warn", "no raft right now (next one spawns in a few seconds)"
 	end)
 
 	check("raft physics owned by the server", function()

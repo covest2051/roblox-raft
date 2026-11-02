@@ -305,25 +305,45 @@ function WorldBuilder.props(): Folder
 		})
 	end
 
-	-- водоворот: кольца (клиент их вращает)
+	-- водоворот: тёмная воронка и полосы пены (клиент вращает их вокруг центра)
 	local wp = River.whirlpool
 	if wp then
-		local m = Make("Model", { Name = "Whirlpool", Parent = folder })
-		local c = worldAt(wp.s, wp.x, River.waterLevel(wp.s))
-		for i = 1, 4 do
-			local d = wp.r * 2 * (i / 4)
-			part({
-				Name = "Ring" .. i,
-				Shape = Enum.PartType.Cylinder,
-				Size = Vector3.new(0.15, d, d),
-				CFrame = CFrame.new(c + Vector3.new(0, 0.1 + i * 0.03, 0))
-					* CFrame.Angles(0, 0, math.rad(90)),
-				Color = if i % 2 == 0 then Color3.fromRGB(30, 80, 100) else Color3.fromRGB(220, 240, 250),
-				Material = Enum.Material.SmoothPlastic,
-				Transparency = 0.55 + i * 0.07,
-				Parent = m,
-			})
+		local level = River.waterLevel(wp.s)
+		local c = worldAt(wp.s, wp.x, level)
+		local m = Make("Model", {
+			Name = "Whirlpool",
+			Attributes = { CX = c.X, CY = c.Y, CZ = c.Z },
+			Parent = folder,
+		})
+		part({
+			Name = "Funnel",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.15, wp.r * 1.2, wp.r * 1.2),
+			CFrame = CFrame.new(c + Vector3.new(0, 0.08, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = Color3.fromRGB(20, 60, 74),
+			Material = Enum.Material.SmoothPlastic,
+			Transparency = 0.35,
+			Parent = m,
+		})
+		local n = 0
+		for ring = 1, 3 do
+			local r = wp.r * ring / 3.2
+			for k = 1, 4 + ring * 2 do
+				n += 1
+				local a = (k / (4 + ring * 2)) * math.pi * 2 + ring
+				part({
+					Name = "Streak",
+					Size = Vector3.new(0.6, 0.12, 3 + ring * 2),
+					CFrame = CFrame.new(c + Vector3.new(math.cos(a) * r, 0.2, math.sin(a) * r)),
+					Color = Color3.fromRGB(235, 248, 255),
+					Material = Enum.Material.SmoothPlastic,
+					Transparency = 0.3,
+					Attributes = { A = a, R = r },
+					Parent = m,
+				})
+			end
 		end
+		_ = n
 	end
 
 	-- водопад: струи и пена внизу
