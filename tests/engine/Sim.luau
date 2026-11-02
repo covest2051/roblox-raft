@@ -83,6 +83,9 @@ for _, e in
 		{ "RunService", "Heartbeat" },
 		{ "RunService", "RenderStepped" },
 		{ "ProximityPrompt", "Triggered" },
+		{ "Humanoid", "Died" },
+		{ "MarketplaceService", "PromptGamePassPurchaseFinished" },
+		{ "MarketplaceService", "PromptProductPurchaseFinished" },
 	}
 do
 	implementEvent(e[1], e[2])
@@ -115,8 +118,9 @@ end)
 -- Время, физика-заглушки
 -------------------------------------------------------------------------------
 Sim.timeOffset = 0
+Sim.virtualTime = nil :: number? -- если задано, сервер видит это время (тест сам его двигает)
 roblox.implementMethod("Workspace", "GetServerTimeNow", function()
-	return os.clock() + Sim.timeOffset
+	return Sim.virtualTime or (os.clock() + Sim.timeOffset)
 end)
 
 -- Position/AssemblyLinearVelocity нельзя переопределить через implementProperty:
@@ -263,6 +267,14 @@ roblox.implementMethod("Player", "LoadCharacter", function(self)
 	local head = roblox.Instance.new("Part")
 	head.Name = "Head"
 	head.Parent = ch
+	local torso = roblox.Instance.new("Part")
+	torso.Name = "UpperTorso"
+	torso.Size = roblox.Vector3.new(2, 1.6, 1)
+	torso.Parent = ch
+	local spawn = Sim.game:GetService("Workspace"):FindFirstChildWhichIsA("SpawnLocation", true)
+	if spawn then
+		root.CFrame = spawn.CFrame + roblox.Vector3.new(0, 4, 0)
+	end
 	local hum = roblox.Instance.new("Humanoid")
 	hum.Health = 100
 	hum.Parent = ch
@@ -289,6 +301,137 @@ roblox.implementMethod("PathfindingService", "CreatePath", function()
 		ComputeAsync = function() end,
 	}
 end)
+
+-------------------------------------------------------------------------------
+-- Terrain (FillBlock/ReadVoxels), физика, сервисы магазина и данных
+-------------------------------------------------------------------------------
+Sim.fills = { count = 0, materials = {} }
+roblox.implementMethod("Terrain", "FillBlock", function(_, cf, size, material)
+	assert(
+		typeof(cf) == "CFrame" and typeof(size) == "Vector3" and typeof(material) == "EnumItem",
+		"FillBlock args"
+	)
+	assert(size.X > 0 and size.Y > 0 and size.Z > 0, "FillBlock size must be positive")
+	Sim.fills.count += 1
+	Sim.fills.materials[material.Name] = (Sim.fills.materials[material.Name] or 0) + 1
+end)
+roblox.implementMethod("Terrain", "ReadVoxels", function(_, region, res)
+	assert(res == 4)
+	return { { { roblox.Enum.Material.Water } } }, { { { 1 } } }
+end)
+
+local groups = { Default = true }
+local collidable = {}
+roblox.implementMethod("PhysicsService", "RegisterCollisionGroup", function(_, name)
+	groups[name] = true
+end)
+roblox.implementMethod("PhysicsService", "IsCollisionGroupRegistered", function(_, name)
+	return groups[name] == true
+end)
+roblox.implementMethod("PhysicsService", "CollisionGroupSetCollidable", function(_, a, b, v)
+	assert(groups[a] and groups[b], "collision group not registered: " .. a .. "/" .. b)
+	collidable[a .. "|" .. b] = v
+end)
+Sim.collidable = collidable
+local owners = setmetatable({}, { __mode = "k" })
+roblox.implementMethod("BasePart", "SetNetworkOwner", function(self, p)
+	owners[self] = p or false
+end)
+roblox.implementMethod("BasePart", "GetNetworkOwner", function(self)
+	return owners[self] or nil
+end)
+roblox.implementMethod("PVInstance", "GetPivot", function(self)
+	local root = self:FindFirstChild("HumanoidRootPart") or self.PrimaryPart
+	return root and root.CFrame or roblox.CFrame.new()
+end)
+
+-- DataStore в памяти; Sim.dataFail = true — все вызовы падают
+Sim.dataStores = {}
+Sim.dataFail = false
+Sim.dataCalls = 0
+roblox.implementMethod("DataStoreService", "GetDataStore", function(_, name)
+	Sim.dataStores[name] = Sim.dataStores[name] or {}
+	local mem = Sim.dataStores[name]
+	return {
+		GetAsync = function(_, key)
+			Sim.dataCalls += 1
+			if Sim.dataFail then
+				error("DataStore unavailable (sim)")
+			end
+			return mem[key]
+		end,
+		UpdateAsync = function(_, key, fn)
+			Sim.dataCalls += 1
+			if Sim.dataFail then
+				error("DataStore unavailable (sim)")
+			end
+			mem[key] = fn(mem[key])
+			return mem[key]
+		end,
+	}
+end)
+
+-- Магазин
+Sim.prompts = {}
+Sim.ownedPasses = {}
+Sim.policyRestricted = false
+Sim.policyFail = false
+roblox.implementProperty("MarketplaceService", "ProcessReceipt", function()
+	return Sim.processReceipt
+end, function(_, fn)
+	Sim.processReceipt = fn
+end)
+roblox.implementMethod("MarketplaceService", "PromptProductPurchase", function(_, player, id)
+	table.insert(Sim.prompts, { kind = "product", player = player, id = id })
+end)
+roblox.implementMethod("MarketplaceService", "PromptGamePassPurchase", function(_, player, id)
+	table.insert(Sim.prompts, { kind = "pass", player = player, id = id })
+end)
+roblox.implementMethod("MarketplaceService", "UserOwnsGamePassAsync", function(_, userId, id)
+	return Sim.ownedPasses[userId .. ":" .. id] == true
+end)
+roblox.implementMethod("PolicyService", "GetPolicyInfoForPlayerAsync", function()
+	if Sim.policyFail then
+		error("policy unavailable (sim)")
+	end
+	return { ArePaidRandomItemsRestricted = Sim.policyRestricted, IsSubjectToChinaPolicies = false }
+end)
+local guid = 0
+roblox.implementMethod("HttpService", "GenerateGUID", function()
+	guid += 1
+	return string.format("guid-%06d", guid)
+end)
+roblox.implementMethod("DataModel", "BindToClose", function(_, fn)
+	Sim.onClose = fn
+end)
+roblox.implementMethod("Players", "GetPlayerByUserId", function(self, id)
+	for _, p in self:GetChildren() do
+		if p.ClassName == "Player" and p.UserId == id then
+			return p
+		end
+	end
+	return nil
+end)
+roblox.implementMethod("SocialService", "PromptGameInvite", function(_, player)
+	Sim.invites = (Sim.invites or 0) + 1
+end)
+
+-- Физика плота: Hull мгновенно встаёт в цели AlignPosition/AlignOrientation
+function Sim.stepPhysics()
+	local folder = Sim.game:GetService("Workspace"):FindFirstChild("Rafts")
+	if not folder then
+		return
+	end
+	for _, m in folder:GetChildren() do
+		local hull = m.PrimaryPart
+		local ap = hull and hull:FindFirstChild("AlignPosition")
+		local ao = hull and hull:FindFirstChild("AlignOrientation")
+		if ap and ao then
+			hull.CFrame = roblox.CFrame.new(ap.Position) * ao.CFrame.Rotation
+			hull.AssemblyLinearVelocity = roblox.Vector3.zero
+		end
+	end
+end
 
 -------------------------------------------------------------------------------
 -- Клиентские заглушки (сервер и клиент в одном DataModel)
@@ -359,6 +502,19 @@ local RaycastParamsMock = {
 	end,
 }
 
+local RandomMock = {
+	new = function()
+		return {
+			NextInteger = function(_, a, b)
+				return math.random(a, b)
+			end,
+			NextNumber = function(_, a, b)
+				return (a or 0) + math.random() * ((b or 1) - (a or 0))
+			end,
+		}
+	end,
+}
+
 local cache = {}
 local function makeEnv(script)
 	return {
@@ -382,6 +538,7 @@ local function makeEnv(script)
 		Enum = roblox.Enum,
 		RaycastParams = RaycastParamsMock,
 		TweenInfo = TweenInfoMock,
+		Random = RandomMock,
 		task = task,
 		warn = function(...)
 			Sim.warnings = Sim.warnings or {}
@@ -425,9 +582,13 @@ function Sim.loadPlace(path)
 	return Sim.game
 end
 
+local nextUserId = 1000
 function Sim.addPlayer(name)
 	local p = roblox.Instance.new("Player")
 	p.Name = name
+	nextUserId += 1
+	p.UserId = nextUserId
+	p.DisplayName = name
 	p.Parent = Sim.game:GetService("Players")
 	return p
 end

@@ -20,7 +20,7 @@ River.Blend = 40 -- плавный переход ширины/течения м
 	turns: куски {len, turn} — поворот в градусах за кусок (+ вправо).
 ]]
 River.Sections = {
-	{ id = "dock", width = 56, current = 9, bank = 7, turns = { { 200, 0 } } },
+	{ id = "dock", width = 56, current = 9, bank = 1.5, turns = { { 200, 0 } } },
 	{
 		id = "riffles",
 		width = 50,
