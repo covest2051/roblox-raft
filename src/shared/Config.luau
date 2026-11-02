@@ -63,6 +63,7 @@ Config.Timing = {
 	NextRaftDelay = 3,
 	OverboardGrace = 1.5,
 	WreckRevive = 10, -- секунд на «Второй шанс»
+	WreckPayHold = 20, -- столько ждём, если игрок открыл окно оплаты
 	ResultsTime = 6, -- после финиша — назад к причалу
 	SimStep = 1 / 30,
 	AttrRate = 0.1, -- как часто публиковать состояние плота атрибутами

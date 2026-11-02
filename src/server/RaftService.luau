@@ -49,6 +49,7 @@ export type Raft = {
 	attrAt: number,
 	bob: number,
 	debris: { BasePart }?,
+	wreckHeld: boolean?,
 }
 
 local rafts: { [number]: Raft } = {}
@@ -584,6 +585,20 @@ function RaftService.raftOf(player: Player): Raft?
 	return byPlayer[player]
 end
 
+-- Игрок нажал «Второй шанс»: даём время на окно оплаты (один раз за крушение)
+function RaftService.holdWreck(player: Player)
+	local raft = byPlayer[player]
+	if not raft or raft.phase ~= "wrecked" or raft.wreckHeld then
+		return
+	end
+	raft.wreckHeld = true
+	raft.wreckEnd = math.max(raft.wreckEnd, now() + Config.Timing.WreckPayHold)
+	sendCrew(
+		raft,
+		{ t = "wreck", deadline = raft.wreckEnd, canRevive = Monetization.available("product", "Revive") }
+	)
+end
+
 -- «Второй шанс»: вызывает Monetization после оплаты. true — плот спасён.
 function RaftService.revive(player: Player): boolean
 	local raft = byPlayer[player]
@@ -597,6 +612,7 @@ function RaftService.revive(player: Player): boolean
 	raft.revives += 1
 	raft.phase = "run"
 	raft.wreckEnd = 0
+	raft.wreckHeld = false
 	sendCrew(raft, { t = "revived", by = player.DisplayName })
 	publish(raft)
 	return true

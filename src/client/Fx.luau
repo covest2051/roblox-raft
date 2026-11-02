@@ -118,6 +118,12 @@ function Fx.build()
 	end
 	Fx.localize()
 	Lang.onChange(Fx.localize)
+	-- на случай StreamingEnabled: таблички, подгруженные позже, тоже переводим
+	Workspace.DescendantAdded:Connect(function(d)
+		if d:IsA("TextLabel") and d:GetAttribute("TextKey") then
+			d.Text = Lang.t(d:GetAttribute("TextKey"))
+		end
+	end)
 	-- сундук на причале открывает магазин
 	local dock = Workspace:FindFirstChild("Dock")
 	local chest = dock and dock:FindFirstChild("Chest")

@@ -106,6 +106,7 @@ handlers.product = function(player: Player, payload)
 		if not raft or raft.phase ~= "wrecked" then
 			return
 		end
+		RaftService.holdWreck(player)
 	end
 	Monetization.promptProduct(player, key, item)
 end
