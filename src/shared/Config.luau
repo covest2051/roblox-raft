@@ -111,7 +111,7 @@ Config.DataStore = {
 
 -- Встроенные звуки клиента (rbxasset://). Свои — rbxassetid://<id>.
 Config.Sounds = {
-	River = { Id = "rbxasset://sounds/action_swim.mp3", Volume = 0.3, Speed = 0.6 },
+	River = { Id = "rbxasset://sounds/action_swim.mp3", Volume = 0.12, Speed = 0.5 },
 	Splash = { Id = "rbxasset://sounds/impact_water.mp3", Volume = 0.8, Speed = 1.0 },
 	Coin = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.3, Speed = 1.3 },
 	Hit = { Id = "rbxasset://sounds/action_jump_land.mp3", Volume = 1.0, Speed = 0.55 },

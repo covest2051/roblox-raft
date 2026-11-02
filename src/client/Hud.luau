@@ -4,6 +4,7 @@
 ]]
 
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -78,9 +79,10 @@ local function buildTopLeft(root: Instance)
 		Name = "TopLeft",
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(16, 16),
-		Size = UDim2.fromOffset(190, 200),
+		Size = UDim2.fromOffset(190, 250),
 		Parent = root,
 	}))
+	refs.topLeft = box
 	local pill = Ui.panel({ Name = "Coins", Size = UDim2.fromOffset(190, 46), Parent = box })
 	local icon = Make("Frame", {
 		Size = UDim2.fromOffset(28, 28),
@@ -152,7 +154,7 @@ local function buildTopLeft(root: Instance)
 	end)
 	refs.saveWarn = Ui.label({
 		Size = UDim2.fromOffset(240, 40),
-		Position = UDim2.fromOffset(0, 158),
+		Position = UDim2.fromOffset(0, 206),
 		TextSize = 14,
 		TextColor3 = C.warn,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -263,10 +265,15 @@ local function buildProgress(root: Instance)
 end
 
 local function buildBalance(root: Instance)
+	local okT, touchT = pcall(function()
+		return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	end)
+	local touch = okT and touchT == true
 	local box = Ui.scaled(Ui.panel({
 		Name = "Balance",
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -16, 1, -16),
+		-- на телефоне справа снизу — кнопка прыжка, поэтому поднимаем к середине
+		AnchorPoint = if touch then Vector2.new(1, 0.5) else Vector2.new(1, 1),
+		Position = if touch then UDim2.new(1, -12, 0.42, 0) else UDim2.new(1, -16, 1, -16),
 		Size = UDim2.fromOffset(190, 258),
 		Visible = false,
 		Parent = root,
@@ -380,17 +387,16 @@ local function buildCenter(root: Instance)
 		Text = "",
 		Parent = root,
 	})
-	local leave = Ui.scaled(Ui.button({
+	local leave = Ui.button({
 		Name = "LeaveButton",
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 16, 1, -16),
-		Size = UDim2.fromOffset(170, 40),
+		Size = UDim2.fromOffset(190, 40),
+		Position = UDim2.fromOffset(0, 160),
 		BackgroundColor3 = Color3.fromRGB(80, 50, 40),
 		TextSize = 16,
 		Text = "",
 		Visible = false,
-		Parent = root,
-	}))
+		Parent = refs.topLeft,
+	})
 	refs.leave = leave
 	leave.Activated:Connect(function()
 		Net.ClientAction:FireServer({ t = "leave" })
@@ -741,7 +747,16 @@ local function updateBalance(model: Model?)
 	hl(refs.hintBack, bz < -0.05)
 end
 
+local function liveCoins()
+	local ls = player:FindFirstChild("leaderstats")
+	local v = ls and ls:FindFirstChild("Coins") :: IntValue?
+	if v then
+		refs.coins.Text = tostring(v.Value)
+	end
+end
+
 function Hud.update()
+	liveCoins()
 	local myId = Hud.myRaftId()
 	local model = Hud.raftModel(myId)
 	updateMarkers(if Hud.isCrew() then myId else nil)
