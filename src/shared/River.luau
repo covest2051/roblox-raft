@@ -26,7 +26,7 @@ River.Sections = {
 		width = 50,
 		current = 16,
 		bank = 8,
-		turns = { { 180, 18 }, { 200, -30 }, { 160, 12 } },
+		turns = { { 180, 34 }, { 200, -52 }, { 160, 24 } },
 	},
 	{
 		id = "canyon",
@@ -34,7 +34,7 @@ River.Sections = {
 		current = 20,
 		bank = 30,
 		rock = true,
-		turns = { { 160, -14 }, { 160, 22 }, { 160, -8 } },
+		turns = { { 160, -32 }, { 160, 44 }, { 160, -18 } },
 	},
 	{ id = "pool", width = 92, current = 10, bank = 9, turns = { { 280, 0 } } },
 	{
@@ -43,9 +43,9 @@ River.Sections = {
 		current = 24,
 		bank = 12,
 		rock = true,
-		turns = { { 200, 24 }, { 200, -20 }, { 200, -10 } },
+		turns = { { 200, 40 }, { 200, -46 }, { 200, -6 } },
 	},
-	{ id = "falls", width = 44, current = 22, bank = 14, rock = true, turns = { { 230, 6 } } },
+	{ id = "falls", width = 44, current = 22, bank = 14, rock = true, turns = { { 230, 12 } } },
 	{ id = "lake", width = 130, current = 9, bank = 6, turns = { { 330, 0 } } },
 }
 
